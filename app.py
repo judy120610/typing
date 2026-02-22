@@ -117,19 +117,31 @@ else:
             
             st.rerun()
 
-# --- 5. 커서를 입력창으로 강제 이동시키는 JS ---
+# --- 5. 커서를 입력창으로 강제 이동시키는 JS (더욱 강력한 Polling 방식) ---
 components.html(
     f"""
     <script>
     function focusInput() {{
         var inputs = window.parent.document.querySelectorAll('input[type="text"]');
         if (inputs.length > 0) {{
-            // 가장 마지막에 생성된 입력창(현재 문제의 키를 가진 창)에 포커스
-            inputs[inputs.length - 1].focus();
+            var lastInput = inputs[inputs.length - 1];
+            lastInput.focus();
+            // 포커스가 실제로 잡혔는지 확인
+            if (window.parent.document.activeElement === lastInput) {{
+                return true;
+            }}
         }}
+        return false;
     }}
-    // Streamlit 렌더링 완료 후 실행되도록 지연 처리
-    setTimeout(focusInput, 150);
+
+    // 최대 2초 동안 0.1초 간격으로 포커스 시도 (성공하면 즉시 중단)
+    var attempts = 0;
+    var interval = setInterval(function() {{
+        if (focusInput() || attempts > 20) {{
+            clearInterval(interval);
+        }}
+        attempts++;
+    }}, 100);
     </script>
     """,
     height=0,
