@@ -9,14 +9,26 @@ LIMITS = {"단어": 35, "단문": 12, "장문": 7, "Word": 35, "Short": 12, "Lon
 
 DATA = {
     "한글": {
-        "단어": ["사과", "바다", "하늘", "고구마", "파이썬", "키보드", "자동차", "우주", "행복", "산책", "구름", "나무", "커피", "노트북", "포도", "의자", "책상", "안경", "시계", "전화기"],
-        "단문": ["간장 공장 공장장은 강 공장장이다.", "오늘 날씨가 정말 화창하네요.", "작은 토끼가 산 위에서 밤새도록 춤을 춥니다.", "독서는 마음의 양식입니다.", "파이썬으로 웹 서비스를 만듭니다.", "끝까지 포기하지 않는 사람이 성공합니다.", "지나간 일은 잊고 내일을 준비합시다.", "성공은 매일 반복되는 작은 노력의 합산입니다."],
-        "장문": ["대한민국은 민주공화국이다. 대한민국의 주권은 국민에게 있고, 모든 권력은 국민으로부터 나온다.", "국가는 전통문화의 계승·발전과 민족문화의 창달에 노력하여야 한다. 모든 국민은 신체의 자유를 가진다.", "모든 국민은 법 앞에 평등하다. 누구든지 성별·종교 또는 사회적 신분에 의하여 차별을 받지 아니한다."]
+        "단어": ["사과", "바다", "하늘", "고구마", "파이썬", "키보드", "자동차", "우주", "행복", "산책", "구름", "나무", "커피", "노트북", "포도", "의자", "책상", "안경", "시계", "전화기", "무지개", "태양", "비행기", "고향", "가족", "친구", "음악", "영화", "학교", "병원", "시장", "별", "달", "해바라기", "김치", "비빔밥", "불고기", "냉면", "떡볶이"],
+        "단문": [
+            "간장 공장 공장장은 강 공장장이다.", "오늘 날씨가 정말 화창하네요.", "작은 토끼가 산 위에서 밤새도록 춤을 춥니다.", "독서는 마음의 양식입니다.", "파이썬으로 웹 서비스를 만듭니다.", "끝까지 포기하지 않는 사람이 성공합니다.", "지나간 일은 잊고 내일을 준비합시다.", "성공은 매일 반복되는 작은 노력의 합산입니다.",
+            "내일은 오늘보다 더 나은 날이 될 것입니다.", "포기하지 말고 꿈을 향해 나아가세요.", "당신의 노력이 언젠가는 빛을 발할 것입니다.", "소중한 사람들과 함께 행복한 시간을 보내세요.", "건강이 가장 큰 재산입니다.", "항상 긍정적인 마음가짐을 가지세요.", "새로운 도전을 두려워하지 마세요.", "배움에는 끝이 없습니다."
+        ],
+        "장문": [
+            "대한민국은 민주공화국이다. 대한민국의 주권은 국민에게 있고, 모든 권력은 국민으로부터 나온다.", "국가는 전통문화의 계승·발전과 민족문화의 창달에 노력하여야 한다. 모든 국민은 신체의 자유를 가진다.", "모든 국민은 법 앞에 평등하다. 누구든지 성별·종교 또는 사회적 신분에 의하여 차별을 받지 아니한다.",
+            "국민의 자유와 권리는 헌법에 열거되지 아니한 이유로 경시되지 아니한다.", "모든 국민은 거주·이전의 자유를 가진다. 모든 국민은 주거의 자유를 침해받지 아니한다.", "국가는 재해를 예방하고 그 위험으로부터 국민을 보호하기 위하여 노력하여야 한다."
+        ]
     },
     "English": {
-        "Word": ["Apple", "Ocean", "Sky", "Python", "Keyboard", "Coffee", "Universe", "Happy", "Cloud", "Mouse", "Programming", "Code", "Water", "Forest", "Music"],
-        "Short": ["The quick brown fox jumps over the lazy dog.", "Practice makes perfect.", "Stay hungry, stay foolish.", "Believe in yourself.", "Coding is a superpower.", "Life is what happens when you are busy making other plans."],
-        "Long": ["The only way to do great work is to love what you do. If you haven't found it yet, keep looking. Don't settle.", "Success is not final, failure is not fatal: it is the courage to continue that counts."]
+        "Word": ["Apple", "Ocean", "Sky", "Python", "Keyboard", "Coffee", "Universe", "Happy", "Cloud", "Mouse", "Programming", "Code", "Water", "Forest", "Music", "Banana", "Camera", "Desktop", "Exercise", "Flower", "Guitar", "Health", "Island", "Jungle", "Laptop", "Mountain", "Nature", "Orange", "Picnic", "Rainbow", "Sunrise", "Umbrella", "Valley", "Zebra", "Architecture"],
+        "Short": [
+            "The quick brown fox jumps over the lazy dog.", "Practice makes perfect.", "Stay hungry, stay foolish.", "Believe in yourself.", "Coding is a superpower.", "Life is what happens when you are busy making other plans.",
+            "Don't count the days, make the days count.", "The best way to predict the future is to create it.", "It always seems impossible until it's done.", "Quality is not an act, it is a habit.", "Dream big and dare to fail.", "Success usually comes to those who are too busy to be looking for it."
+        ],
+        "Long": [
+            "The only way to do great work is to love what you do. If you haven't found it yet, keep looking. Don't settle.", "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+            "In the end, it's not the years in your life that count. It's the life in your years.", "Excellence is never an accident. It is always the result of high intention, sincere effort, and intelligent execution; it represents the wise choice of many alternatives."
+        ]
     }
 }
 
@@ -27,8 +39,18 @@ if 'initialized' not in st.session_state:
 def init_session(lang, mode):
     all_sentences = DATA[lang][mode]
     limit = LIMITS[mode]
-    selected = [random.choice(all_sentences) for _ in range(limit)]
-    st.session_state.current_set = selected
+    
+    # 중복 없이 섞기
+    shuffled = all_sentences.copy()
+    random.shuffle(shuffled)
+    
+    # 데이터가 부족하면 부족한 만큼 더 채우기
+    while len(shuffled) < limit:
+        extra = all_sentences.copy()
+        random.shuffle(extra)
+        shuffled.extend(extra)
+        
+    st.session_state.current_set = shuffled[:limit]
     st.session_state.initialized = True
     st.session_state.game_finished = False
 
