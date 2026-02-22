@@ -118,34 +118,64 @@ else:
             
             st.rerun()
 
-# --- 5. 커서를 입력창으로 강제 이동시키는 JS (더욱 강력하고 빠른 Polling 방식) ---
+# --- 5. 커서를 입력창으로 강제 이동시키는 JS (MutationObserver + Aggressive Polling) ---
 components.html(
     f"""
     <script>
-    function focusInput() {{
-        var inputs = window.parent.document.querySelectorAll('input[type="text"]');
-        if (inputs.length > 0) {{
-            var lastInput = inputs[inputs.length - 1];
-            lastInput.focus();
-            // 입력창이 활성화되면 테두리 색상을 변경하여 시각적 피드백 제공
-            lastInput.style.boxShadow = "0 0 10px #4CAF50";
-            lastInput.style.borderColor = "#4CAF50";
+    (function() {{
+        const parentDoc = window.parent.document;
+        
+        function tryFocus() {{
+            // 사이드바가 아닌 메인 컨텐츠 영역의 입력창만 타겟팅
+            const mainSection = parentDoc.querySelector('section.main');
+            if (!mainSection) return false;
             
-            if (window.parent.document.activeElement === lastInput) {{
-                return true;
+            const inputs = mainSection.querySelectorAll('input[type="text"]');
+            if (inputs.length > 0) {{
+                const targetInput = inputs[inputs.length - 1];
+                
+                // 포커스 시도
+                targetInput.focus();
+                
+                // 시각적 피드백 (활성화 상태 강조)
+                targetInput.style.boxShadow = "0 0 15px rgba(76, 175, 80, 0.7)";
+                targetInput.style.borderColor = "#4CAF50";
+                targetInput.style.transition = "box-shadow 0.2s ease-in-out";
+                
+                // 실제로 포커스가 잡혔는지 확인
+                return parentDoc.activeElement === targetInput;
             }}
+            return false;
         }}
-        return false;
-    }}
 
-    // 더 빠른 반응성을 위해 0.05초 간격으로 시도
-    var attempts = 0;
-    var interval = setInterval(function() {{
-        if (focusInput() || attempts > 30) {{
-            clearInterval(interval);
+        // 1. 즉시 시행
+        if (tryFocus()) {{
+            console.log("Immediate focus success");
         }}
-        attempts++;
-    }}, 50);
+
+        // 2. MutationObserver: DOM 변화를 감지하여 입력창이 나타나는 즉시 포커스
+        const observer = new MutationObserver((mutations, obs) => {{
+            if (tryFocus()) {{
+                // 성공하면 감시 중단 (단, 안정성을 위해 1초 뒤에 종료)
+                setTimeout(() => obs.disconnect(), 1000);
+            }}
+        }});
+        
+        observer.observe(parentDoc.body, {{
+            childList: true,
+            subtree: true
+        }});
+
+        // 3. 백업용 반복 폴링 (더 촘촘하게 30ms 간격으로 시도)
+        let attempts = 0;
+        const interval = setInterval(() => {{
+            attempts++;
+            if (tryFocus() || attempts > 50) {{
+                clearInterval(interval);
+                observer.disconnect();
+            }}
+        }}, 30);
+    }})();
     </script>
     """,
     height=0,
