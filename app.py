@@ -1,6 +1,7 @@
 import streamlit as st
 import time
 import random
+import json
 import streamlit.components.v1 as components
 
 # --- 1. 설정 및 데이터 ---
@@ -26,19 +27,13 @@ if 'initialized' not in st.session_state:
 def init_session(lang, mode):
     all_sentences = DATA[lang][mode]
     limit = LIMITS[mode]
-    # 문장 개수가 부족하면 보충
     selected = [random.choice(all_sentences) for _ in range(limit)]
-    
     st.session_state.current_set = selected
-    st.session_state.current_idx = 0
-    st.session_state.total_chars = 0
-    st.session_state.start_time_total = None
-    st.session_state.is_completed = False
-    st.session_state.input_key = 0
     st.session_state.initialized = True
+    st.session_state.game_finished = False
 
 # --- 3. UI 설정 ---
-st.set_page_config(page_title="Speed Typer", page_icon="⌨️")
+st.set_page_config(page_title="Speed Typer Pro", page_icon="⌨️", layout="centered")
 
 st.title("⌨️ 무한 타자 연습 (No Mouse)")
 
@@ -51,135 +46,121 @@ with st.sidebar:
         init_session(lang, mode)
         st.rerun()
 
-# --- 4. 연습 로직 ---
-if st.session_state.is_completed:
-    # 모든 세트 완료 후 결과 창
-    total_time = st.session_state.finish_time - st.session_state.start_time_total
-    avg_cpm = int((st.session_state.total_chars / total_time) * 60)
+# --- 4. 엔진 (Custom Web Component) ---
+def typing_engine(sentences):
+    sentences_json = json.dumps(sentences)
     
-    st.balloons()
-    st.success(f"🎊 {mode} 모드 완료!")
-    st.metric("평균 타수", f"{avg_cpm} CPM")
-    st.metric("총 소요 시간", f"{total_time:.2f} 초")
-    
-    if st.button("한 번 더 하기"):
-        init_session(lang, mode)
-        st.rerun()
-else:
-    # 진행 중
-    idx = st.session_state.current_idx
-    limit = LIMITS[mode]
-    target_text = st.session_state.current_set[idx]
+    html_code = f"""
+    <div id="typing-root" style="font-family: 'Malgun Gothic', sans-serif; max-width: 800px; margin: auto;">
+        <div id="progress-bar" style="width: 100%; height: 5px; background: #eee; border-radius: 5px; margin-bottom: 20px;">
+            <div id="progress-inner" style="width: 0%; height: 100%; background: #4CAF50; border-radius: 5px; transition: width 0.3s;"></div>
+        </div>
+        
+        <div id="status-text" style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">문제 1 / {len(sentences)}</div>
+        
+        <div id="target-box" style="font-size: 1.6rem; border: 2px solid #4CAF50; padding: 25px; border-radius: 12px; background-color: #fcfcfc; color: #333; line-height: 1.6; min-height: 60px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div id="target-text"></div>
+        </div>
 
-    st.write(f"**문제 {idx + 1} / {limit}**")
-    st.progress((idx) / limit)
-
-    # 목표 문장 표시
-    st.markdown(f"""
-    <div style='font-size: 1.5rem; border: 2px solid #4CAF50; padding: 20px; border-radius: 10px; background-color: #f9f9f9; color: black; line-height: 1.6;'>
-        {target_text}
+        <input type="text" id="typing-input" autocomplete="off" placeholder="여기에 타이핑 후 Enter"
+               style="width: 100%; padding: 15px; font-size: 1.4rem; border: 2px solid #ddd; border-radius: 10px; outline: none; transition: all 0.2s; box-sizing: border-box;">
+        
+        <div id="feedback-box" style="font-size: 1.4rem; font-family: monospace; margin-top: 15px; min-height: 30px; letter-spacing: 1px;"></div>
     </div>
-    """, unsafe_allow_html=True)
 
-    # 입력창 (Key를 바꿔서 이전 내용을 지움, label_visibility로 더 깔끔하게)
-    user_input = st.text_input(
-        "입력", 
-        key=f"input_{st.session_state.input_key}",
-        placeholder="문장을 입력하고 Enter를 누르세요",
-        label_visibility="collapsed"
-    )
-
-    # 오타 강조 처리
-    if user_input:
-        if st.session_state.start_time_total is None:
-            st.session_state.start_time_total = time.time()
-
-        # 실시간 색상 피드백
-        colored_text = ""
-        for i, char in enumerate(target_text):
-            if i < len(user_input):
-                if char == user_input[i]:
-                    colored_text += f'<span style="color: grey;">{char}</span>'
-                else:
-                    colored_text += f'<span style="color: red; font-weight: bold; background-color: #ffcccc;">{char}</span>'
-            else:
-                colored_text += f'<span>{char}</span>'
-        st.markdown(f"<div style='font-size: 1.4rem; font-family: monospace; margin-top: 10px;'>{colored_text}</div>", unsafe_allow_html=True)
-
-        # 정답일 때 엔터 치면 (Enter는 st.text_input에서 기본 동작) 바로 다음으로
-        if user_input == target_text:
-            st.session_state.total_chars += len(target_text)
-            st.session_state.current_idx += 1
-            st.session_state.input_key += 1
-            
-            if st.session_state.current_idx >= limit:
-                st.session_state.finish_time = time.time()
-                st.session_state.is_completed = True
-            
-            st.rerun()
-
-# --- 5. 커서를 입력창으로 강제 이동시키는 JS (MutationObserver + Aggressive Polling) ---
-components.html(
-    f"""
     <script>
-    (function() {{
-        const parentDoc = window.parent.document;
-        
-        function tryFocus() {{
-            // 사이드바가 아닌 메인 컨텐츠 영역의 입력창만 타겟팅
-            const mainSection = parentDoc.querySelector('section.main');
-            if (!mainSection) return false;
-            
-            const inputs = mainSection.querySelectorAll('input[type="text"]');
-            if (inputs.length > 0) {{
-                const targetInput = inputs[inputs.length - 1];
-                
-                // 포커스 시도
-                targetInput.focus();
-                
-                // 시각적 피드백 (활성화 상태 강조)
-                targetInput.style.boxShadow = "0 0 15px rgba(76, 175, 80, 0.7)";
-                targetInput.style.borderColor = "#4CAF50";
-                targetInput.style.transition = "box-shadow 0.2s ease-in-out";
-                
-                // 실제로 포커스가 잡혔는지 확인
-                return parentDoc.activeElement === targetInput;
-            }}
-            return false;
+    const sentences = {sentences_json};
+    let currentIdx = 0;
+    let totalChars = 0;
+    let startTime = null;
+
+    const targetTextEl = document.getElementById('target-text');
+    const inputEl = document.getElementById('typing-input');
+    const feedbackEl = document.getElementById('feedback-box');
+    const progressEl = document.getElementById('progress-inner');
+    const statusEl = document.getElementById('status-text');
+
+    function updateSentence() {{
+        if (currentIdx >= sentences.length) {{
+            finishGame();
+            return;
         }}
-
-        // 1. 즉시 시행
-        if (tryFocus()) {{
-            console.log("Immediate focus success");
-        }}
-
-        // 2. MutationObserver: DOM 변화를 감지하여 입력창이 나타나는 즉시 포커스
-        const observer = new MutationObserver((mutations, obs) => {{
-            if (tryFocus()) {{
-                // 성공하면 감시 중단 (단, 안정성을 위해 1초 뒤에 종료)
-                setTimeout(() => obs.disconnect(), 1000);
-            }}
-        }});
+        targetTextEl.textContent = sentences[currentIdx];
+        inputEl.value = '';
+        feedbackEl.innerHTML = '';
+        statusEl.textContent = `문제 ${{currentIdx + 1}} / ${{sentences.length}}`;
+        progressEl.style.width = `${{(currentIdx / sentences.length) * 100}}%`;
         
-        observer.observe(parentDoc.body, {{
-            childList: true,
-            subtree: true
-        }});
+        // 브라우저 네이티브 포커스 강제 (안정적)
+        setTimeout(() => inputEl.focus(), 10);
+    }}
 
-        // 3. 백업용 반복 폴링 (더 촘촘하게 30ms 간격으로 시도)
-        let attempts = 0;
-        const interval = setInterval(() => {{
-            attempts++;
-            if (tryFocus() || attempts > 50) {{
-                clearInterval(interval);
-                observer.disconnect();
-            }}
-        }}, 30);
-    }})();
+    function finishGame() {{
+        const endTime = Date.now();
+        const totalTime = (endTime - startTime) / 1000;
+        const cpm = Math.round((totalChars / totalTime) * 60);
+        
+        document.getElementById('typing-root').innerHTML = `
+            <div style="text-align: center; padding: 40px; background: #e8f5e9; border-radius: 20px;">
+                <h2 style="color: #2e7d32;">🎊 연습 완료!</h2>
+                <div style="font-size: 2.5rem; font-weight: bold; margin: 20px 0;">${{cpm}} <span style="font-size: 1rem;">CPM</span></div>
+                <p style="color: #666;">총 소요 시간: ${{totalTime.toFixed(2)}}초</p>
+                <button onclick="parent.location.reload()" style="background: #4CAF50; color: white; border: none; padding: 10px 25px; border-radius: 5px; cursor: pointer; font-size: 1rem;">다시 하기</button>
+            </div>
+        `;
+    }}
+
+    inputEl.addEventListener('input', (e) => {{
+        if (!startTime) startTime = Date.now();
+        
+        const target = sentences[currentIdx];
+        const val = e.target.value;
+        let html = '';
+        
+        for (let i = 0; i < target.length; i++) {{
+            if (i < val.length) {{
+                if (target[i] === val[i]) {{
+                    html += `<span style="color: grey;">${{target[i]}}</span>`;
+                } else {{
+                    html += `<span style="color: red; font-weight: bold; background: #ffcccc;">${{target[i]}}</span>`;
+                }
+            } else {{
+                html += `<span>${{target[i]}}</span>`;
+            }
+        }}
+        feedbackEl.innerHTML = html;
+
+        // 정답 체크 (실시간 다음 단계 이동)
+        if (val === target) {{
+            totalChars += target.length;
+            currentIdx++;
+            updateSentence();
+        }}
+    }});
+
+    // 초기 포커스 및 상시 포커스 유지 처리
+    inputEl.focus();
+    document.addEventListener('click', () => inputEl.focus());
+    
+    // 스타일 포커스 피드백
+    inputEl.addEventListener('focus', () => {{
+        inputEl.style.borderColor = '#4CAF50';
+        inputEl.style.boxShadow = '0 0 10px rgba(76, 175, 80, 0.3)';
+    }});
+    inputEl.addEventListener('blur', () => {{
+        inputEl.style.borderColor = '#ddd';
+        inputEl.style.boxShadow = 'none';
+        // 강제로 포커스 복구 (단, 사용자가 다른 조작을 할 때는 방해되지 않게 지연)
+        setTimeout(() => inputEl.focus(), 100);
+    }});
+
+    updateSentence();
     </script>
-    """,
-    height=0,
-)
+    """
+    components.html(html_code, height=450)
+
+if st.session_state.initialized:
+    typing_engine(st.session_state.current_set)
 
 st.divider()
-st.caption("Enter를 누르면 다음 문장으로 자동 이동하며 커서가 유지됩니다. (마우스 불필요)")
+st.caption("이 버전은 브라우저 엔진을 직접 컨트롤하여 '마우스 없는 환경'에 최적화되어 있습니다.")
