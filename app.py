@@ -23,11 +23,11 @@ DATA = {
         "Word": ["apple", "ocean", "sky", "python", "keyboard", "coffee", "universe", "happy", "cloud", "mouse", "programming", "code", "water", "forest", "music", "banana", "camera", "desktop", "exercise", "flower", "guitar", "health", "island", "jungle", "laptop", "mountain", "nature", "orange", "picnic", "rainbow", "sunrise", "umbrella", "valley", "zebra", "architecture"],
         "Short": [
             "The quick brown fox jumps over the lazy dog.", "Practice makes perfect.", "Stay hungry, stay foolish.", "Believe in yourself.", "Coding is a superpower.", "Life is what happens when you are busy making other plans.",
-            "Don't count the days, make the days count.", "The best way to predict the future is to create it.", "It always seems impossible until it's done.", "Quality is not an act, it is a habit.", "dream big and dare to fail.", "success usually comes to those who are too busy to be looking for it."
+            "Don't count the days, make the days count.", "The best way to predict the future is to create it.", "It always seems impossible until it's done.", "Quality is not an act, it is a habit.", "Dream big and dare to fail.", "Success usually comes to those who are too busy to be looking for it."
         ],
         "Long": [
             "The only way to do great work is to love what you do. If you haven't found it yet, keep looking. Don't settle.", "Success is not final, failure is not fatal: it is the courage to continue that counts.",
-            "In the end, it's not the years in your life that count. it's the life in your years.", "Excellence is never an accident. It is always the result of high intention, sincere effort, and intelligent execution; it represents the wise choice of many alternatives."
+            "In the end, it's not the years in your life that count. It's the life in your years.", "Excellence is never an accident. It is always the result of high intention, sincere effort, and intelligent execution; it represents the wise choice of many alternatives."
         ]
     }
 }
@@ -38,8 +38,8 @@ if 'initialized' not in st.session_state:
 
 def init_session(lang, mode):
     all_sentences = DATA[lang][mode]
-    # 영어의 경우 모든 텍스트를 소문자로 변환 (사용자 요청)
-    if lang == "English":
+    # 영어 'Word' 모드일 때만 소문자로 변환 (사용자 요청 반영)
+    if lang == "English" and mode == "Word":
         all_sentences = [s.lower() for s in all_sentences]
         
     limit = LIMITS[mode]
