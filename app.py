@@ -81,11 +81,12 @@ else:
     </div>
     """, unsafe_allow_html=True)
 
-    # 입력창 (Key를 바꿔서 이전 내용을 지움)
+    # 입력창 (Key를 바꿔서 이전 내용을 지움, label_visibility로 더 깔끔하게)
     user_input = st.text_input(
-        "", 
+        "입력", 
         key=f"input_{st.session_state.input_key}",
-        placeholder="여기에 타이핑 후 엔터"
+        placeholder="문장을 입력하고 Enter를 누르세요",
+        label_visibility="collapsed"
     )
 
     # 오타 강조 처리
@@ -103,7 +104,7 @@ else:
                     colored_text += f'<span style="color: red; font-weight: bold; background-color: #ffcccc;">{char}</span>'
             else:
                 colored_text += f'<span>{char}</span>'
-        st.markdown(f"<div style='font-size: 1.4rem; font-family: monospace;'>{colored_text}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size: 1.4rem; font-family: monospace; margin-top: 10px;'>{colored_text}</div>", unsafe_allow_html=True)
 
         # 정답일 때 엔터 치면 (Enter는 st.text_input에서 기본 동작) 바로 다음으로
         if user_input == target_text:
@@ -117,7 +118,7 @@ else:
             
             st.rerun()
 
-# --- 5. 커서를 입력창으로 강제 이동시키는 JS (더욱 강력한 Polling 방식) ---
+# --- 5. 커서를 입력창으로 강제 이동시키는 JS (더욱 강력하고 빠른 Polling 방식) ---
 components.html(
     f"""
     <script>
@@ -126,7 +127,10 @@ components.html(
         if (inputs.length > 0) {{
             var lastInput = inputs[inputs.length - 1];
             lastInput.focus();
-            // 포커스가 실제로 잡혔는지 확인
+            // 입력창이 활성화되면 테두리 색상을 변경하여 시각적 피드백 제공
+            lastInput.style.boxShadow = "0 0 10px #4CAF50";
+            lastInput.style.borderColor = "#4CAF50";
+            
             if (window.parent.document.activeElement === lastInput) {{
                 return true;
             }}
@@ -134,14 +138,14 @@ components.html(
         return false;
     }}
 
-    // 최대 2초 동안 0.1초 간격으로 포커스 시도 (성공하면 즉시 중단)
+    // 더 빠른 반응성을 위해 0.05초 간격으로 시도
     var attempts = 0;
     var interval = setInterval(function() {{
-        if (focusInput() || attempts > 20) {{
+        if (focusInput() || attempts > 30) {{
             clearInterval(interval);
         }}
         attempts++;
-    }}, 100);
+    }}, 50);
     </script>
     """,
     height=0,
