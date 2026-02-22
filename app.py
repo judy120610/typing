@@ -121,12 +121,12 @@ def typing_engine(sentences):
             if (i < val.length) {{
                 if (target[i] === val[i]) {{
                     html += `<span style="color: grey;">${{target[i]}}</span>`;
-                } else {{
+                }} else {{
                     html += `<span style="color: red; font-weight: bold; background: #ffcccc;">${{target[i]}}</span>`;
-                }
+                }}
             } else {{
                 html += `<span>${{target[i]}}</span>`;
-            }
+            }}
         }}
         feedbackEl.innerHTML = html;
 
